@@ -3,7 +3,7 @@
   <groupId>ch.plaintext</groupId>
   <artifactId>plaintext-root-interfaces</artifactId>
   <versioning>
-    <release>1.544.0</release>
+    <release>1.546.0</release>
     <versions>
       <version>1.495.0</version>
       <version>1.497.0</version>
@@ -30,7 +30,8 @@
       <version>1.540.0</version>
       <version>1.542.0</version>
       <version>1.544.0</version>
+      <version>1.546.0</version>
     </versions>
-    <lastUpdated>20260808183303</lastUpdated>
+    <lastUpdated>20260809022127</lastUpdated>
   </versioning>
 </metadata>
