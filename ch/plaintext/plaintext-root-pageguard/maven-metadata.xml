@@ -3,7 +3,7 @@
   <groupId>ch.plaintext</groupId>
   <artifactId>plaintext-root-pageguard</artifactId>
   <versioning>
-    <release>1.550.0</release>
+    <release>1.552.0</release>
     <versions>
       <version>1.495.0</version>
       <version>1.497.0</version>
@@ -33,7 +33,8 @@
       <version>1.546.0</version>
       <version>1.548.0</version>
       <version>1.550.0</version>
+      <version>1.552.0</version>
     </versions>
-    <lastUpdated>20260810151005</lastUpdated>
+    <lastUpdated>20260810171931</lastUpdated>
   </versioning>
 </metadata>
