@@ -3,7 +3,7 @@
   <groupId>ch.plaintext</groupId>
   <artifactId>plaintext-admin-secrets</artifactId>
   <versioning>
-    <release>1.597.0</release>
+    <release>1.599.0</release>
     <versions>
       <version>1.495.0</version>
       <version>1.497.0</version>
@@ -56,7 +56,8 @@
       <version>1.593.0</version>
       <version>1.595.0</version>
       <version>1.597.0</version>
+      <version>1.599.0</version>
     </versions>
-    <lastUpdated>20260819183751</lastUpdated>
+    <lastUpdated>20260822060607</lastUpdated>
   </versioning>
 </metadata>
