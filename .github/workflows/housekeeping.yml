@@ -5,30 +5,35 @@ name: housekeeping
 #  * **prunePackagesDryRun** — zeigt NUR an, was geloescht wuerde. Nichts wird angefasst.
 #  * **prunePackages**       — loescht tatsaechlich.
 #
-# Regel (identisch in beiden Tasks, nur das Loeschen unterscheidet sie):
+# Regel:
 #
 #   1. Jede Version mit `-SNAPSHOT` im Namen faellt weg. Sie hat nach dem zugehoerigen
-#      Release keinen Wert mehr: Die Apps (app/iot/schuetu/guild) bauen per fester
+#      Release keinen Wert: Die Apps (app/iot/schuetu/guild) bauen per fester
 #      Familienregel immer gegen eine RELEASED root-Version, nie gegen einen SNAPSHOT,
 #      und root selbst baut seine Module aus dem eigenen Reactor.
-#   2. Von den Releases bleiben die neuesten KEEP_NEWEST (30) stehen — plus alles, was
-#      juenger als KEEP_DAYS (90) Tage ist. Es gilt die grosszuegigere der beiden
-#      Bedingungen, damit ein Projekt, das laenger nicht nachgezogen hat, nicht ins
-#      Leere laeuft.
-#   3. Ein Paket wird nie vollstaendig geleert.
+#   2. Von den Releases bleiben pro Paket die **neuesten KEEP_NEWEST (10)** stehen.
+#   3. SCHUTZKLAUSEL: Zusaetzlich bleibt jede Version stehen, die aktuell von einer der
+#      vier Consumer-Apps referenziert wird — auch wenn sie aelter als die zehntneueste
+#      ist. Lieber elf Versionen als ein kaputter Build.
+#   4. Ein Paket wird nie vollstaendig geleert.
 #
-# WARUM DAS HYGIENE IST UND KEINE KOSTENFRAGE (23.08.2026, Karte 942):
-# Dieses Repo ist oeffentlich und alle 30 Pakete sind es auch. Oeffentliche Pakete sind
-# bei GitHub kostenlos — gemessen an der Billing-API wird der Packages-Storage zwar
-# ausgewiesen (im August 8 800 GB-Stunden, brutto 2,96 $), aber zu 100 % rabattiert,
-# netto 0 $. Der Speicher hier hat also NIE Geld gekostet und war auch nicht die Ursache
-# der blockierten Artefakt-Uploads — das war der Actions-Storage (siehe plaintext-scripts
-# PR #83). Dieser Workflow haelt den Bestand schlank und uebersichtlich, mehr nicht.
-# Die Pakete bleiben bewusst veroeffentlicht, damit sie jemand nutzen kann.
+# WARUM NUR 10 (23.08.2026, Karte 942):
+# Es geht hier NICHT um Speicher — der ist geklaert. Dieses Repo und alle 30 Pakete sind
+# oeffentlich, und oeffentliche Pakete sind bei GitHub kostenlos (die Billing-API weist den
+# Packages-Storage aus, rabattiert ihn aber zu 100 %, netto 0 $). Es geht um
+# Informationshygiene: Die publizierten Jars enthalten `application.yml` und
+# `plaintext-defaults.yml` mit sehr ausfuehrlichen Security-Kommentaren — interne
+# Hostnamen, ein dokumentierter Session-ID-Vorfall, die Messung offener /api-docs.
+# Publizierte Artefakte lassen sich nicht nachtraeglich aendern, nur loeschen. Ein kurzes
+# Fenster von 10 Versionen sorgt dafuer, dass korrigierte Staende die alten binnen Tagen
+# herausrotieren, statt dass Hunderte alter Jars den Altstand konservieren.
 #
-# Token: GITHUB_TOKEN mit `packages: write` reicht, solange die Pakete an dieses Repo
-# gebunden sind. Antwortet die API mit 403, liegt ein PAT mit `delete:packages` als
-# Secret PACKAGES_PRUNE_TOKEN bereit und wird bevorzugt benutzt.
+# TOKEN — BITTE LESEN:
+# Die vier Consumer-Repos sind PRIVAT. Das GITHUB_TOKEN dieses (oeffentlichen) Repos kann
+# sie nicht lesen, und ohne sie laesst sich die Schutzklausel aus Punkt 3 nicht auswerten.
+# Der Workflow bricht dann ABSICHTLICH ab, statt blind zu loeschen (fail closed).
+# Fuer den scharfen Lauf ein PAT mit `repo` + `delete:packages` als Secret
+# PACKAGES_PRUNE_TOKEN hinterlegen.
 
 on:
   workflow_dispatch:
@@ -47,8 +52,8 @@ permissions:
   contents: read
 
 env:
-  KEEP_NEWEST: '30'
-  KEEP_DAYS: '90'
+  KEEP_NEWEST: '10'
+  CONSUMERS: 'plaintext-app plaintext-iot plaintext-schuetu plaintext-guild'
 
 jobs:
   run:
@@ -64,8 +69,31 @@ jobs:
         run: |
           set -euo pipefail
 
-          cutoff=$(date -u -d "-${KEEP_DAYS} days" +%Y-%m-%dT%H:%M:%SZ)
-          echo "::notice::dry-run=${DRY_RUN}  keep-newest=${KEEP_NEWEST}  keep-since=${cutoff}"
+          # ── Schutzklausel: aktuell referenzierte Versionen einsammeln ────────────
+          # Je Consumer die <plaintext-root.version> UND die <version> aus dem
+          # <parent>-Block. Beide zeigen auf Artefakte in diesem Repo.
+          protected=""
+          for repo in ${CONSUMERS}; do
+            pom=$(gh api "/repos/${ORG}/${repo}/contents/pom.xml?ref=master" --jq .content 2>/dev/null | base64 -d || true)
+            if [ -z "$pom" ]; then
+              echo "::error::pom.xml von ${repo} nicht lesbar — die Schutzklausel kann nicht ausgewertet werden."
+              echo "::error::Die Consumer-Repos sind privat: ein PAT mit repo-Scope als Secret PACKAGES_PRUNE_TOKEN hinterlegen."
+              echo "::error::Abbruch ohne zu loeschen (fail closed)."
+              exit 1
+            fi
+            rv=$(printf '%s' "$pom" | grep -o '<plaintext-root\.version>[^<]*' | head -1 | sed 's/.*>//')
+            pv=$(printf '%s' "$pom" | sed -n '/<parent>/,/<\/parent>/p' | grep -o '<version>[^<]*' | head -1 | sed 's/.*>//')
+            [ -n "$rv" ] && protected="${protected} ${rv}"
+            [ -n "$pv" ] && protected="${protected} ${pv}"
+            echo "::notice::${repo}: root.version=${rv:-?} parent=${pv:-?}"
+          done
+          protected=$(printf '%s\n' ${protected} | sort -u | tr '\n' ' ')
+          if [ -z "${protected// /}" ]; then
+            echo "::error::Keine einzige referenzierte Version ermittelt — das ist unplausibel. Abbruch."
+            exit 1
+          fi
+          echo "::notice::geschuetzt: ${protected}"
+          echo "::notice::dry-run=${DRY_RUN}  keep-newest=${KEEP_NEWEST}"
 
           mapfile -t packages < <(
             gh api --paginate "/orgs/${ORG}/packages?package_type=maven&per_page=100" \
@@ -73,12 +101,12 @@ jobs:
           )
           echo "::notice::${#packages[@]} Maven-Pakete gefunden"
 
-          total_del=0; total_fail=0; total_keep=0; total_snap=0
+          total_del=0; total_fail=0; total_keep=0; total_snap=0; total_prot=0
 
           for pkg in "${packages[@]}"; do
             enc=${pkg//\//%2F}
 
-            # Alle Versionen, neueste zuerst. id, name und created_at tabgetrennt.
+            # Alle Versionen, neueste zuerst (nach created_at).
             mapfile -t rows < <(
               gh api --paginate "/orgs/${ORG}/packages/maven/${enc}/versions?per_page=100" \
                 --jq '.[] | [.id, .name, .created_at] | @tsv' \
@@ -86,21 +114,24 @@ jobs:
             )
             [ ${#rows[@]} -eq 0 ] && continue
 
-            # Kandidaten bestimmen: SNAPSHOTs immer, Releases nur ausserhalb beider Schutzregeln.
             del_ids=(); del_names=(); rank=0
             for row in "${rows[@]}"; do
-              IFS=$'\t' read -r id name created <<<"$row"
+              IFS=$'\t' read -r id name _ <<<"$row"
               if [[ "${name^^}" == *SNAPSHOT* ]]; then
                 del_ids+=("$id"); del_names+=("$name"); total_snap=$((total_snap + 1)); continue
               fi
               rank=$((rank + 1))
-              if [ "$rank" -le "${KEEP_NEWEST}" ] || [[ "$created" > "$cutoff" ]]; then
+              if [ "$rank" -le "${KEEP_NEWEST}" ]; then
                 total_keep=$((total_keep + 1)); continue
+              fi
+              # Schutzklausel: referenzierte Version bleibt, egal wie alt.
+              if [[ " ${protected} " == *" ${name} "* ]]; then
+                echo "::notice::${pkg}: ${name} bleibt (aktiv referenziert, ausserhalb der neuesten ${KEEP_NEWEST})"
+                total_prot=$((total_prot + 1)); continue
               fi
               del_ids+=("$id"); del_names+=("$name")
             done
 
-            # Schutz: niemals das ganze Paket leeren.
             if [ ${#del_ids[@]} -ge ${#rows[@]} ]; then
               echo "::warning::${pkg}: Regel wuerde ALLE ${#rows[@]} Versionen treffen — uebersprungen"
               continue
@@ -137,17 +168,20 @@ jobs:
             total_del=$((total_del + pkg_del)); total_fail=$((total_fail + pkg_fail))
           done
 
-          echo "::notice::TOTAL deleted=${total_del} failed=${total_fail} kept=${total_keep} (davon SNAPSHOTs: ${total_snap})"
+          echo "::notice::TOTAL deleted=${total_del} failed=${total_fail} kept=${total_keep} protected=${total_prot} snapshots=${total_snap}"
           label="geloescht"
           [ "${DRY_RUN}" = "true" ] && label="wuerde geloescht"
           {
             echo "## housekeeping — ${TASK}"
+            echo ""
+            echo "Geschuetzte (referenzierte) Versionen: \`${protected}\`"
             echo ""
             echo "| | |"
             echo "|---|---|"
             echo "| Pakete | ${#packages[@]} |"
             echo "| ${label} | ${total_del} |"
             echo "| fehlgeschlagen | ${total_fail} |"
-            echo "| behalten | ${total_keep} |"
-            echo "| davon SNAPSHOTs | ${total_snap} |"
+            echo "| behalten (neueste ${KEEP_NEWEST}) | ${total_keep} |"
+            echo "| zusaetzlich behalten (referenziert) | ${total_prot} |"
+            echo "| davon SNAPSHOTs geloescht | ${total_snap} |"
           } >> "$GITHUB_STEP_SUMMARY"
