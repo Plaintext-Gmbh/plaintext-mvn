@@ -12,9 +12,13 @@ name: housekeeping
 #      Familienregel immer gegen eine RELEASED root-Version, nie gegen einen SNAPSHOT,
 #      und root selbst baut seine Module aus dem eigenen Reactor.
 #   2. Von den Releases bleiben pro Paket die **neuesten KEEP_NEWEST (10)** stehen.
-#   3. SCHUTZKLAUSEL: Zusaetzlich bleibt jede Version stehen, die aktuell von einer der
-#      vier Consumer-Apps referenziert wird — auch wenn sie aelter als die zehntneueste
-#      ist. Lieber elf Versionen als ein kaputter Build.
+#   3. SCHUTZKLAUSEL — zwei Stufen, beide aus `pins/` (siehe unten):
+#      a) Jede Version, die eine Consumer-App namentlich referenziert, bleibt stehen.
+#      b) Und alles, was **nicht aelter** ist als die aelteste referenzierte Version
+#         ("Bodenlinie"). Ohne (b) waere (a) unvollstaendig: Ein Pin, der aus irgendeinem
+#         Grund hinterherhinkt, wuerde nur die ALTE Version schuetzen und ausgerechnet die
+#         neuere, tatsaechlich benutzte, ins Messer laufen lassen. Mit (b) kann ein
+#         veralteter Pin nur noch ZU VIEL behalten — nie zu wenig.
 #   4. Ein Paket wird nie vollstaendig geleert.
 #
 # WARUM NUR 10 (23.08.2026, Karte 942):
@@ -28,12 +32,33 @@ name: housekeeping
 # Fenster von 10 Versionen sorgt dafuer, dass korrigierte Staende die alten binnen Tagen
 # herausrotieren, statt dass Hunderte alter Jars den Altstand konservieren.
 #
-# TOKEN — BITTE LESEN:
-# Die vier Consumer-Repos sind PRIVAT. Das GITHUB_TOKEN dieses (oeffentlichen) Repos kann
-# sie nicht lesen, und ohne sie laesst sich die Schutzklausel aus Punkt 3 nicht auswerten.
-# Der Workflow bricht dann ABSICHTLICH ab, statt blind zu loeschen (fail closed).
-# Fuer den scharfen Lauf ein PAT mit `repo` + `delete:packages` als Secret
-# PACKAGES_PRUNE_TOKEN hinterlegen.
+# WOHER DIE SCHUTZINFORMATION KOMMT — UND WARUM KEIN PAT MEHR (24.08.2026, Karte 942):
+# Bis hierher las dieser Workflow die vier `pom.xml` direkt aus den Consumer-Repos. Die sind
+# PRIVAT; das `GITHUB_TOKEN` dieses oeffentlichen Repos kommt nicht heran, der Lauf brach
+# fail-closed ab und verlangte ein PAT `PACKAGES_PRUNE_TOKEN`. Das ist jetzt umgedreht:
+# **jede App schreibt ihren Pin selbst hierher**, nach `pins/<repo>.env`, aus
+# `.github/workflows/publish-root-pin.yaml` im jeweiligen Consumer-Repo. Dort ist der
+# Schreibzugriff ohnehin vorhanden (`AUTOBUMP_TOKEN`, Write-Collaborator `Plaintext-User`),
+# hier waere Lesezugriff auf fremde private Repos noetig gewesen. Es musste kein einziges
+# Token neu eingerichtet werden. Details: `pins/README.md`.
+#
+# Verworfen wurden dabei:
+#  * **Workflow in ein privates Repo umziehen** — loest nichts. Auch plaintext-root kann die
+#    pom.xml von app/iot/schuetu/guild nicht lesen; jedes dieser Repos ist gegenueber den
+#    anderen genauso fremd wie dieses hier. Das Tokenproblem waere nur umgezogen.
+#  * **Statt Pins ein Zeitfenster** ("behalte alles der letzten N Tage") — an den echten
+#    Daten durchgerechnet: 201 Pin-Wechsel der vier Apps seit Maerz 2026. Seit es den
+#    Auto-Bump gibt (August) liegt der groesste Rueckstand bei 76 h, der Median bei 17 h —
+#    damit waere N=7 bequem sicher. Davor aber gab es 12 Faelle ueber 7 Tagen und zweimal
+#    27,4 Tage (1.169.0 in iot und schuetu bis zum 02.06.2026). Ein sicheres N waere also
+#    ~30 Tage; bei der aktuellen Kadenz von 13 Releases in 5 Tagen sind das ~78 Versionen je
+#    Paket statt 10 — genau die Informationshygiene, um die es oben geht, waere dahin. Und
+#    strukturell bleibt es unsicher: schuetu ist eine Turnier-App, die ohne weiteres eine
+#    Saison lang stillstehen darf. Ein Zeitfenster kann das nicht wissen, ein Pin schon.
+#
+# FAIL CLOSED bleibt fail closed: fehlt ein Pin, ist er unlesbar, nennt er eine Version, die
+# es im Register gar nicht (mehr) gibt, oder ist er seit ueber PIN_MAX_DAYS nicht mehr
+# aufgefrischt worden, bricht der Lauf ab, ohne etwas zu loeschen.
 
 on:
   workflow_dispatch:
@@ -54,46 +79,110 @@ permissions:
 env:
   KEEP_NEWEST: '10'
   CONSUMERS: 'plaintext-app plaintext-iot plaintext-schuetu plaintext-guild'
+  # Referenzpaket fuer die Zeitachse: plaintext-root-parent wird bei JEDEM root-Release
+  # publiziert (es ist die Parent-POM), also traegt es die vollstaendige Versionslinie.
+  REF_PACKAGE: 'ch.plaintext.plaintext-root-parent'
+  # Der Heartbeat der Consumer laeuft woechentlich. Ab PIN_WARN_DAYS ist etwas auffaellig,
+  # ab PIN_MAX_DAYS (vier verpasste Heartbeats) ist die Datenlage nicht mehr vertrauenswuerdig.
+  PIN_WARN_DAYS: '10'
+  PIN_MAX_DAYS: '30'
 
 jobs:
   run:
     name: ${{ inputs.task }}
     runs-on: ubuntu-22.04
     steps:
+      - uses: actions/checkout@v4
+
       - name: ${{ inputs.task }}
         env:
-          GH_TOKEN: ${{ secrets.PACKAGES_PRUNE_TOKEN || github.token }}
+          GH_TOKEN: ${{ github.token }}
           ORG: ${{ github.repository_owner }}
           TASK: ${{ inputs.task }}
           DRY_RUN: ${{ inputs.task == 'prunePackagesDryRun' && 'true' || 'false' }}
         run: |
           set -euo pipefail
 
-          # ── Schutzklausel: aktuell referenzierte Versionen einsammeln ────────────
-          # Je Consumer die <plaintext-root.version> UND die <version> aus dem
-          # <parent>-Block. Beide zeigen auf Artefakte in diesem Repo.
+          now_ts=$(date -u +%s)
+
+          # ── Schritt 1: Pins einlesen ─────────────────────────────────────────────
+          # Ein fehlender oder kaputter Pin ist KEIN "dann halt ohne Schutz", sondern das
+          # Ende des Laufs. Lieber gar nicht aufgeraeumt als eine benutzte Version geloescht.
           protected=""
+          pin_report=""
           for repo in ${CONSUMERS}; do
-            pom=$(gh api "/repos/${ORG}/${repo}/contents/pom.xml?ref=master" --jq .content 2>/dev/null | base64 -d || true)
-            if [ -z "$pom" ]; then
-              echo "::error::pom.xml von ${repo} nicht lesbar — die Schutzklausel kann nicht ausgewertet werden."
-              echo "::error::Die Consumer-Repos sind privat: ein PAT mit repo-Scope als Secret PACKAGES_PRUNE_TOKEN hinterlegen."
+            pin="pins/${repo}.env"
+            if [ ! -f "$pin" ]; then
+              echo "::error::${pin} fehlt — die Schutzklausel kann nicht ausgewertet werden."
+              echo "::error::Schreibt ${repo} seinen Pin? Siehe .github/workflows/publish-root-pin.yaml dort."
               echo "::error::Abbruch ohne zu loeschen (fail closed)."
               exit 1
             fi
-            rv=$(printf '%s' "$pom" | grep -o '<plaintext-root\.version>[^<]*' | head -1 | sed 's/.*>//')
-            pv=$(printf '%s' "$pom" | sed -n '/<parent>/,/<\/parent>/p' | grep -o '<version>[^<]*' | head -1 | sed 's/.*>//')
-            [ -n "$rv" ] && protected="${protected} ${rv}"
-            [ -n "$pv" ] && protected="${protected} ${pv}"
-            echo "::notice::${repo}: root.version=${rv:-?} parent=${pv:-?}"
+
+            vers=$(sed -n 's/^versions=//p' "$pin" | head -1)
+            upd=$(sed -n 's/^updated=//p'  "$pin" | head -1)
+
+            # Nur echte Versionsnummern zaehlen. Ein Pin, der versehentlich "${...}" oder
+            # Leerstring enthaelt, ist unplausibel und darf nicht als "nichts zu schuetzen"
+            # durchgehen.
+            clean=$(printf '%s\n' ${vers} | grep -E '^[0-9]+\.[0-9]+\.[0-9]+$' || true)
+            if [ -z "$clean" ]; then
+              echo "::error::${pin}: keine gueltige Version in 'versions=${vers}'. Abbruch (fail closed)."
+              exit 1
+            fi
+
+            upd_ts=$(date -u -d "$upd" +%s 2>/dev/null || echo 0)
+            if [ "$upd_ts" -eq 0 ]; then
+              echo "::error::${pin}: 'updated=${upd}' ist kein lesbarer Zeitstempel. Abbruch (fail closed)."
+              exit 1
+            fi
+            age_d=$(( (now_ts - upd_ts) / 86400 ))
+            if [ "$age_d" -gt "${PIN_MAX_DAYS}" ]; then
+              echo "::error::${pin}: seit ${age_d} Tagen nicht aufgefrischt (Grenze ${PIN_MAX_DAYS})."
+              echo "::error::Der woechentliche Heartbeat in ${repo} laeuft offenbar nicht — die Datenlage ist nicht mehr vertrauenswuerdig."
+              echo "::error::Abbruch ohne zu loeschen (fail closed)."
+              exit 1
+            fi
+            if [ "$age_d" -gt "${PIN_WARN_DAYS}" ]; then
+              echo "::warning::${pin}: seit ${age_d} Tagen nicht aufgefrischt — Heartbeat in ${repo} pruefen."
+            fi
+
+            one=$(printf '%s\n' ${clean} | tr '\n' ' ')
+            protected="${protected} ${one}"
+            pin_report="${pin_report}| \`${repo}\` | \`${one% }\` | ${age_d} d |"$'\n'
+            echo "::notice::${repo}: ${one% }  (Pin ${age_d} Tage alt)"
           done
           protected=$(printf '%s\n' ${protected} | sort -u | tr '\n' ' ')
-          if [ -z "${protected// /}" ]; then
-            echo "::error::Keine einzige referenzierte Version ermittelt — das ist unplausibel. Abbruch."
-            exit 1
-          fi
+
+          # ── Schritt 2: Bodenlinie bestimmen ──────────────────────────────────────
+          # Die aelteste referenzierte Version legt fest, wie weit zurueck ueberhaupt
+          # aufgeraeumt werden darf. Laesst sich eine referenzierte Version im Register
+          # nicht mehr finden, ist genau der Schaden schon eingetreten, den dieser
+          # Workflow verhindern soll — dann wird nicht auch noch nachgelegt.
+          declare -A refdate
+          while IFS=$'\t' read -r n c; do refdate["$n"]="$c"; done < <(
+            gh api --paginate "/orgs/${ORG}/packages/maven/${REF_PACKAGE}/versions?per_page=100" \
+              --jq '.[] | [.name, .created_at] | @tsv'
+          )
+          floor=""; floor_name=""
+          for v in ${protected}; do
+            d="${refdate[$v]:-}"
+            if [ -z "$d" ]; then
+              echo "::error::Referenzierte Version ${v} existiert in ${REF_PACKAGE} nicht (mehr)."
+              echo "::error::Eine benutzte Version fehlt bereits im Register — erst klaeren, dann aufraeumen."
+              echo "::error::Abbruch ohne zu loeschen (fail closed)."
+              exit 1
+            fi
+            if [ -z "$floor" ] || [[ "$d" < "$floor" ]]; then floor="$d"; floor_name="$v"; fi
+          done
+
+          floor_age_d=$(( (now_ts - $(date -u -d "$floor" +%s)) / 86400 ))
           echo "::notice::geschuetzt: ${protected}"
+          echo "::notice::Bodenlinie: ${floor_name} (${floor}, ${floor_age_d} Tage alt) — nichts Neueres wird geloescht"
           echo "::notice::dry-run=${DRY_RUN}  keep-newest=${KEEP_NEWEST}"
+          if [ "$floor_age_d" -gt 30 ]; then
+            echo "::warning::Die aelteste benutzte Version (${floor_name}) ist ${floor_age_d} Tage alt — eine App haengt weit zurueck, entsprechend wenig kann aufgeraeumt werden."
+          fi
 
           mapfile -t packages < <(
             gh api --paginate "/orgs/${ORG}/packages?package_type=maven&per_page=100" \
@@ -101,7 +190,7 @@ jobs:
           )
           echo "::notice::${#packages[@]} Maven-Pakete gefunden"
 
-          total_del=0; total_fail=0; total_keep=0; total_snap=0; total_prot=0
+          total_del=0; total_fail=0; total_keep=0; total_snap=0; total_prot=0; total_floor=0
 
           for pkg in "${packages[@]}"; do
             enc=${pkg//\//%2F}
@@ -116,7 +205,7 @@ jobs:
 
             del_ids=(); del_names=(); rank=0
             for row in "${rows[@]}"; do
-              IFS=$'\t' read -r id name _ <<<"$row"
+              IFS=$'\t' read -r id name created <<<"$row"
               if [[ "${name^^}" == *SNAPSHOT* ]]; then
                 del_ids+=("$id"); del_names+=("$name"); total_snap=$((total_snap + 1)); continue
               fi
@@ -124,10 +213,15 @@ jobs:
               if [ "$rank" -le "${KEEP_NEWEST}" ]; then
                 total_keep=$((total_keep + 1)); continue
               fi
-              # Schutzklausel: referenzierte Version bleibt, egal wie alt.
+              # Schutz (a): namentlich referenziert — bleibt, egal wie alt.
               if [[ " ${protected} " == *" ${name} "* ]]; then
                 echo "::notice::${pkg}: ${name} bleibt (aktiv referenziert, ausserhalb der neuesten ${KEEP_NEWEST})"
                 total_prot=$((total_prot + 1)); continue
+              fi
+              # Schutz (b): nicht aelter als die aelteste referenzierte Version.
+              if [[ ! "$created" < "$floor" ]]; then
+                echo "::notice::${pkg}: ${name} bleibt (nicht aelter als die Bodenlinie ${floor_name})"
+                total_floor=$((total_floor + 1)); continue
               fi
               del_ids+=("$id"); del_names+=("$name")
             done
@@ -142,7 +236,7 @@ jobs:
             fi
 
             if [ "${DRY_RUN}" = "true" ]; then
-              echo "::notice::${pkg}: wuerde ${#del_ids[@]} von ${#rows[@]} loeschen — z.B. ${del_names[*]:0:5}"
+              echo "::notice::${pkg}: wuerde ${#del_ids[@]} von ${#rows[@]} loeschen — ${del_names[*]}"
               total_del=$((total_del + ${#del_ids[@]}))
               continue
             fi
@@ -168,13 +262,19 @@ jobs:
             total_del=$((total_del + pkg_del)); total_fail=$((total_fail + pkg_fail))
           done
 
-          echo "::notice::TOTAL deleted=${total_del} failed=${total_fail} kept=${total_keep} protected=${total_prot} snapshots=${total_snap}"
+          echo "::notice::TOTAL deleted=${total_del} failed=${total_fail} kept=${total_keep} protected=${total_prot} floor=${total_floor} snapshots=${total_snap}"
           label="geloescht"
           [ "${DRY_RUN}" = "true" ] && label="wuerde geloescht"
           {
             echo "## housekeeping — ${TASK}"
             echo ""
-            echo "Geschuetzte (referenzierte) Versionen: \`${protected}\`"
+            echo "### Schutzinformation aus \`pins/\`"
+            echo ""
+            echo "| Consumer | benutzte Versionen | Pin-Alter |"
+            echo "|---|---|---|"
+            printf '%s' "${pin_report}"
+            echo ""
+            echo "Bodenlinie: **${floor_name}** (${floor}) — nichts Neueres wird geloescht."
             echo ""
             echo "| | |"
             echo "|---|---|"
@@ -182,6 +282,7 @@ jobs:
             echo "| ${label} | ${total_del} |"
             echo "| fehlgeschlagen | ${total_fail} |"
             echo "| behalten (neueste ${KEEP_NEWEST}) | ${total_keep} |"
-            echo "| zusaetzlich behalten (referenziert) | ${total_prot} |"
+            echo "| zusaetzlich behalten (namentlich referenziert) | ${total_prot} |"
+            echo "| zusaetzlich behalten (ueber der Bodenlinie) | ${total_floor} |"
             echo "| davon SNAPSHOTs geloescht | ${total_snap} |"
           } >> "$GITHUB_STEP_SUMMARY"
