@@ -1,45 +1,20 @@
-# pins/ — welche root-Versionen die Consumer-Apps gerade benutzen
+# pins/ — die Daten liegen auf dem Branch `pins`
 
-Diese Dateien sind **Maschinendaten**, nicht Dokumentation. Sie sind die Schutzinformation
-fuer `.github/workflows/housekeeping.yml` (Task `prunePackages`): der Aufraeum-Lauf loescht
-nur Paketversionen, von denen er hier **beweisen** kann, dass sie niemand mehr braucht.
+Hier auf `master` steht nur dieser Zeiger. Die eigentlichen Dateien
+(`pins/plaintext-app.env` und die drei Geschwister) liegen auf dem Branch
+[`pins`](../../tree/pins/pins) und werden von den Consumer-Apps selbst geschrieben.
 
-## Warum sie hier liegen und nicht dort, wo sie entstehen
+Sie sind die Schutzinformation fuer `.github/workflows/housekeeping.yml` (Task
+`prunePackages`): der Aufraeum-Lauf loescht nur Paketversionen, von denen er daraus
+**beweisen** kann, dass sie niemand mehr braucht. Er liest sie ueber die Contents-API mit
+`?ref=pins`, checkt diesen Branch also gar nicht aus.
 
-Die Wahrheit steht in der `pom.xml` der vier Consumer-Apps — und die Repos
-`plaintext-app`, `plaintext-iot`, `plaintext-schuetu`, `plaintext-guild` sind **privat**.
-Das `GITHUB_TOKEN` dieses oeffentlichen Repos kommt nicht heran; ein PAT dafuer wollen wir
-nicht pflegen. Also dreht die Information die Richtung um: **nicht der Aufraeumer holt sie
-aus dem Privaten, sondern jede App schiebt sie ins Oeffentliche.**
+**Warum ein eigener Branch:** `master` ist geschuetzt ("Changes must be made through a
+pull request"). Der Write-Collaborator, mit dessen Token die Apps schreiben, kann hier
+nicht direkt committen — nur Administratoren kommen daran vorbei. Die vier Consumer mit
+einem Admin-Token auszustatten, um eine Vier-Zeilen-Datei abzulegen, waere mehr Recht als
+noetig. Ausserdem ist `master` das ausgelieferte Maven-Repository; mehrere Bot-Commits pro
+Tag gehoeren nicht in dessen Historie.
 
-Geschrieben wird von `.github/workflows/publish-root-pin.yaml` im jeweiligen Consumer-Repo,
-und zwar bei jedem Push auf dessen `master`, der die `pom.xml` beruehrt — also genau dann,
-wenn ein Auto-Bump-PR gemergt wurde. Dazu kommt ein woechentlicher Heartbeat, der `updated`
-auch dann auffrischt, wenn sich nichts geaendert hat. Ein Pin, der zu lange nicht mehr
-angefasst wurde, ist damit ein *Defekt* und kein Normalzustand — der Aufraeumer kann daran
-erkennen, dass er seiner eigenen Datenlage nicht mehr trauen darf.
-
-Das Token dafuer existiert bereits: `AUTOBUMP_TOKEN` gehoert dem Write-Collaborator
-`Plaintext-User`, der auch auf dieses Repo pushen darf. Es musste nichts eingerichtet werden.
-
-## Format
-
-```
-repo=plaintext-app
-versions=1.614.0
-updated=2026-08-24T07:00:00Z
-commit=a1b2c3d
-```
-
-* `versions` — alle Versionen aus der `pom.xml`, die auf ein Artefakt **dieses** Repos zeigen:
-  die `<parent>`-Version plus jede `<plaintext-root*.version>`-Property, sofern sie eine
-  echte Versionsnummer traegt und keine `${...}`-Referenz. Mehrere durch Leerzeichen
-  getrennt (plaintext-guild hat den Interfaces-Pin schon einmal bewusst entkoppelt gehabt —
-  das Format muss das koennen).
-* `updated` — Zeitpunkt des letzten Schreibens (auch beim Heartbeat ohne Aenderung).
-* `commit` — der Consumer-Commit, aus dem die Versionen gelesen wurden. Nur zum Nachschauen.
-
-## Von Hand aendern?
-
-Nein. Der naechste Lauf des Consumers ueberschreibt es. Wenn hier etwas falsch steht, steht
-es in der `pom.xml` des Consumers falsch.
+Alles Weitere — Format, Heartbeat, was bei einem veralteten Pin passiert — steht in der
+README auf dem Branch `pins` selbst.
