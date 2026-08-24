@@ -42,6 +42,13 @@ name: housekeeping
 # hier waere Lesezugriff auf fremde private Repos noetig gewesen. Es musste kein einziges
 # Token neu eingerichtet werden. Details: `pins/README.md`.
 #
+# Die Pins liegen auf dem eigenen Branch `pins`, nicht auf `master`: `master` ist geschuetzt
+# ("Changes must be made through a pull request"), der Write-Collaborator kann dort nicht
+# direkt committen — nur Administratoren kommen daran vorbei, und ein Admin-Token in vier
+# Consumer-Repos waere mehr Recht als noetig. Ausserdem ist `master` das ausgelieferte
+# Maven-Repository und soll nicht mehrmals taeglich Bot-Commits bekommen. Gelesen wird ueber
+# die Contents-API mit `?ref=pins`; dieser Workflow checkt gar nichts aus.
+#
 # Verworfen wurden dabei:
 #  * **Workflow in ein privates Repo umziehen** — loest nichts. Auch plaintext-root kann die
 #    pom.xml von app/iot/schuetu/guild nicht lesen; jedes dieser Repos ist gegenueber den
@@ -82,6 +89,8 @@ env:
   # Referenzpaket fuer die Zeitachse: plaintext-root-parent wird bei JEDEM root-Release
   # publiziert (es ist die Parent-POM), also traegt es die vollstaendige Versionslinie.
   REF_PACKAGE: 'ch.plaintext.plaintext-root-parent'
+  # Branch, auf dem die Consumer ihre Pins ablegen (siehe pins/README.md).
+  PIN_BRANCH: 'pins'
   # Der Heartbeat der Consumer laeuft woechentlich. Ab PIN_WARN_DAYS ist etwas auffaellig,
   # ab PIN_MAX_DAYS (vier verpasste Heartbeats) ist die Datenlage nicht mehr vertrauenswuerdig.
   PIN_WARN_DAYS: '10'
@@ -92,8 +101,6 @@ jobs:
     name: ${{ inputs.task }}
     runs-on: ubuntu-22.04
     steps:
-      - uses: actions/checkout@v4
-
       - name: ${{ inputs.task }}
         env:
           GH_TOKEN: ${{ github.token }}
@@ -111,16 +118,19 @@ jobs:
           protected=""
           pin_report=""
           for repo in ${CONSUMERS}; do
-            pin="pins/${repo}.env"
-            if [ ! -f "$pin" ]; then
-              echo "::error::${pin} fehlt — die Schutzklausel kann nicht ausgewertet werden."
+            pin="${PIN_BRANCH}:pins/${repo}.env"
+            body=$(gh api "/repos/${GITHUB_REPOSITORY}/contents/pins/${repo}.env?ref=${PIN_BRANCH}" \
+                     --jq '.content' 2>/dev/null | tr -d '\n' | base64 -d 2>/dev/null || true)
+            if [ -z "$body" ]; then
+              echo "::error::${pin} fehlt oder ist leer — die Schutzklausel kann nicht ausgewertet werden."
               echo "::error::Schreibt ${repo} seinen Pin? Siehe .github/workflows/publish-root-pin.yaml dort."
+              echo "::error::Existiert der Branch '${PIN_BRANCH}' noch?"
               echo "::error::Abbruch ohne zu loeschen (fail closed)."
               exit 1
             fi
 
-            vers=$(sed -n 's/^versions=//p' "$pin" | head -1)
-            upd=$(sed -n 's/^updated=//p'  "$pin" | head -1)
+            vers=$(printf '%s\n' "$body" | sed -n 's/^versions=//p' | head -1)
+            upd=$(printf '%s\n'  "$body" | sed -n 's/^updated=//p'  | head -1)
 
             # Nur echte Versionsnummern zaehlen. Ein Pin, der versehentlich "${...}" oder
             # Leerstring enthaelt, ist unplausibel und darf nicht als "nichts zu schuetzen"
