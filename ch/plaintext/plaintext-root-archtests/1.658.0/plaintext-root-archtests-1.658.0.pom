@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>ch.plaintext</groupId>
+        <artifactId>plaintext-root-parent</artifactId>
+        <version>1.658.0</version>
+    </parent>
+
+    <artifactId>plaintext-root-archtests</artifactId>
+    <name>plaintext-root-archtests</name>
+    <description>
+        Wiederverwendbare Architektur-/Lint-Tests (ArchUnit + JUnit) fuer plaintext-root und alle
+        abhaengigen Projekte (app, iot, fwtool, schuetu). Die Tests liegen bewusst in src/main/java,
+        damit sie ins publizierte Jar wandern; Consumer lassen sie via Surefire dependenciesToScan
+        gegen ihre eigenen Klassen/Ressourcen laufen — statt sie zu kopieren.
+    </description>
+
+    <properties>
+        <!-- Kein Coverage-Gate: src/main/java dieses Moduls IST Testcode (die geteilten Regeln),
+             ausgefuehrt in plaintext-root-webapp und in den Consumern. Seine Abdeckung zu messen
+             hiesse, Tests mit Tests zu testen; der Wert lag bei 1,7 % und sagte nichts. -->
+        <jacoco.skip>true</jacoco.skip>
+    </properties>
+
+    <dependencies>
+        <!-- ArchUnit (JUnit-5-Engine + Core). Compile-scope, weil die Tests in src/main liegen.
+             Kommt so bei Consumern transitiv auf den Test-Classpath (api + engine). -->
+        <dependency>
+            <groupId>com.tngtech.archunit</groupId>
+            <artifactId>archunit-junit5</artifactId>
+        </dependency>
+
+        <!-- JUnit Jupiter API fuer @Test/@TempDir/Assertions (Version aus dem Spring-Boot-Parent-BOM). -->
+        <dependency>
+            <groupId>org.junit.jupiter</groupId>
+            <artifactId>junit-jupiter-api</artifactId>
+        </dependency>
+
+        <!-- Engine NUR fuer die modul-eigenen Tests unter src/test/java. Die publizierten Arch-Tests
+             in src/main/java laufen im Consumer mit dessen Engine; archunit-junit5 bringt nur die
+             ArchUnit-Engine mit, nicht die Jupiter-Engine. -->
+        <dependency>
+            <groupId>org.junit.jupiter</groupId>
+            <artifactId>junit-jupiter-engine</artifactId>
+            <scope>test</scope>
+        </dependency>
+
+        <!-- plaintext-root-common bringt transitiv:
+             - ch.plaintext.boot.utils.MobileFormLinter (Scan-Logik des Mobile-Linters)
+             - ch.plaintext:plaintext-root-interfaces -> ch.plaintext.PlaintextCron
+             - spring-context (org.springframework.context.annotation.Scope,
+               org.springframework.scheduling.annotation.Scheduled) -->
+        <dependency>
+            <groupId>ch.plaintext</groupId>
+            <artifactId>plaintext-root-common</artifactId>
+        </dependency>
+    </dependencies>
+
+</project>
