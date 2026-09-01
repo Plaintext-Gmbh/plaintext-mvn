@@ -1,0 +1,508 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>ch.plaintext</groupId>
+        <artifactId>plaintext-root-parent</artifactId>
+        <version>1.662.0</version>
+    </parent>
+
+    <artifactId>plaintext-root-webapp</artifactId>
+    <name>plaintext-root-webapp</name>
+
+    <description>Plaintext Web Application Framework - Security, Login, Menu, Templates, Admin</description>
+
+    <dependencies>
+
+        <!-- === Template === -->
+        <dependency>
+            <groupId>ch.plaintext</groupId>
+            <artifactId>plaintext-root-template</artifactId>
+        </dependency>
+
+        <!-- === Plaintext Framework Modules === -->
+        <dependency>
+            <groupId>ch.plaintext</groupId>
+            <artifactId>plaintext-root-interfaces</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>ch.plaintext</groupId>
+            <artifactId>plaintext-root-common</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>ch.plaintext</groupId>
+            <artifactId>plaintext-root-menu-visibility</artifactId>
+        </dependency>
+
+        <!-- Seiten-Zugriffsschutz aus der Menue-Sichtbarkeit. Eigenes Modul, damit ihn auch Apps
+             nutzen koennen, die nicht auf plaintext-root-webapp aufsetzen. -->
+        <dependency>
+            <groupId>ch.plaintext</groupId>
+            <artifactId>plaintext-root-pageguard</artifactId>
+        </dependency>
+
+        <!-- Wiederverwendbare JSF-/Web-Infrastruktur (URL-Rewriting, MenuBean, Debug-Views).
+             Eigenes Modul, damit auch Apps sie nutzen koennen, die nicht auf
+             plaintext-root-webapp aufsetzen. -->
+        <dependency>
+            <groupId>ch.plaintext</groupId>
+            <artifactId>plaintext-root-web</artifactId>
+        </dependency>
+
+        <!-- Testfabrik des Guards, genutzt von MenuLinkInvariantTest. -->
+        <dependency>
+            <groupId>ch.plaintext</groupId>
+            <artifactId>plaintext-root-pageguard</artifactId>
+            <type>test-jar</type>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>ch.plaintext</groupId>
+            <artifactId>plaintext-root-flyway</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>ch.plaintext</groupId>
+            <artifactId>plaintext-root-jpa</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>ch.plaintext</groupId>
+            <artifactId>plaintext-root-role-assignment</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+
+        <!-- === Admin Framework Modules ===
+             Alle NICHT optional: die vier Apps haengen an genau diesem einen Artefakt und wuerden
+             mit <optional>true</optional> beim naechsten root-Bump still Module verlieren. Wer ein
+             Modul nicht braucht, nimmt <exclusions> an seiner plaintext-root-webapp-Dependency.
+
+             Abwaehlbar (nachgewiesen durch den Surefire-Lauf 'kontext-ohne-abwaehlbare-module',
+             siehe unten, und AbwaehlbareModuleXhtmlTest):
+                 plaintext-admin-webhooks, -notifications, -secrets, -modules
+             Nicht abwaehlbar und warum je einzeln: docs/OPTIONAL_MODULES.md,
+             Begruendung des Wegs: docs/adr/0007-admin-module-abwaehlbar-per-exclusions.md. -->
+        <dependency>
+            <groupId>ch.plaintext</groupId>
+            <artifactId>plaintext-admin-sessions</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>ch.plaintext</groupId>
+            <artifactId>plaintext-admin-cron</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>ch.plaintext</groupId>
+            <artifactId>plaintext-admin-settings</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>ch.plaintext</groupId>
+            <artifactId>plaintext-admin-i18n</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>ch.plaintext</groupId>
+            <artifactId>plaintext-admin-oidc</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>ch.plaintext</groupId>
+            <artifactId>plaintext-admin-apitoken</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>ch.plaintext</groupId>
+            <artifactId>plaintext-admin-secrets</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>ch.plaintext</groupId>
+            <artifactId>plaintext-admin-modules</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>ch.plaintext</groupId>
+            <artifactId>plaintext-admin-mailtemplate</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>ch.plaintext</groupId>
+            <artifactId>plaintext-admin-webhooks</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>ch.plaintext</groupId>
+            <artifactId>plaintext-admin-notifications</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+
+        <!-- Nur fuer die MCP-Annotationen der Benutzerverwaltung (BenutzerMcpTools). optional=true wie
+             in plaintext-admin-apitoken: das Bean haengt an @ConditionalOnClass und laedt ausschliesslich
+             in Apps mit eigenem MCP-Server (app/guild/schuetu/iot). plaintext-root selbst hat keinen und
+             bleibt unberuehrt; nicht-transitiv, damit kein Consumer die Abhaengigkeit ungefragt erbt. -->
+        <dependency>
+            <groupId>org.springframework.ai</groupId>
+            <artifactId>spring-ai-starter-mcp-server-webmvc</artifactId>
+            <version>1.1.8</version>
+            <optional>true</optional>
+        </dependency>
+
+        <!-- === Spring Boot Starters === -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-security</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-oauth2-client</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework</groupId>
+            <artifactId>spring-aop</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.aspectj</groupId>
+            <artifactId>aspectjweaver</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-data-jpa</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-web</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-actuator</artifactId>
+        </dependency>
+        <!-- Prometheus metrics endpoint at /actuator/prometheus.
+             Picked up automatically by Spring Boot Actuator when on the
+             classpath; see docs/operator/PROMETHEUS.md. -->
+        <dependency>
+            <groupId>io.micrometer</groupId>
+            <artifactId>micrometer-registry-prometheus</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-test</artifactId>
+            <scope>test</scope>
+        </dependency>
+
+        <!-- === JSF / PrimeFaces === -->
+        <dependency>
+            <groupId>org.joinfaces</groupId>
+            <artifactId>primefaces-spring-boot-starter</artifactId>
+            <exclusions>
+                <exclusion>
+                    <groupId>org.springframework.boot</groupId>
+                    <artifactId>spring-boot-webmvc</artifactId>
+                </exclusion>
+            </exclusions>
+        </dependency>
+        <!-- KEINE eigene <version> hier. Bis zum 30.08.2026 stand an dieser Stelle ein fest
+             verdrahtetes 4.1.9, waehrend das Eltern-POM ueber <jakarta.faces.version> laengst
+             4.1.14 verwaltete. Die beiden Stellen sind auseinandergelaufen, und weil die
+             Modul-Version die verwaltete schlaegt, lief die Anwendung auf 4.1.9 — fuenf
+             Versionen hinter dem, was das Eltern-POM zu setzen glaubte.
+
+             Was das angerichtet hat: Renovate sah ZWEI Stellen und machte ZWEI Pull Requests
+             (#153 auf diese Datei, #154 auf das Eltern-POM). #154 war gruen, weil die Zeile
+             hier den Effekt abfing; #153 war rot. Vor allem aber verdeckte das Auseinanderlaufen
+             CVE-2026-46581 (Mojarra, CVSS 7.5): der Fix steckt seit 4.1.13 im Code, das
+             Eltern-POM war mit 4.1.14 versorgt — die ausgelieferte Anwendung nicht.
+
+             Ohne <version> gilt die Verwaltung aus dem Eltern-POM. Eine Stelle, ein Renovate-PR. -->
+        <dependency>
+            <groupId>org.glassfish</groupId>
+            <artifactId>jakarta.faces</artifactId>
+        </dependency>
+
+        <!-- === Database === -->
+        <!-- PostgreSQL -->
+        <dependency>
+            <groupId>org.postgresql</groupId>
+            <artifactId>postgresql</artifactId>
+            <scope>runtime</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-flyway</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.flywaydb</groupId>
+            <artifactId>flyway-database-postgresql</artifactId>
+            <scope>runtime</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-docker-compose</artifactId>
+            <scope>runtime</scope>
+        </dependency>
+
+        <!-- === Utilities === -->
+        <dependency>
+            <groupId>com.thoughtworks.xstream</groupId>
+            <artifactId>xstream</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>commons-io</groupId>
+            <artifactId>commons-io</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.commons</groupId>
+            <artifactId>commons-lang3</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.projectlombok</groupId>
+            <artifactId>lombok</artifactId>
+        </dependency>
+
+        <!-- === TOTP / 2FA (Authenticator-App) ===
+             Standard-Spring-TOTP-Lib: Base32-Secret-Generierung, otpauth://-URI,
+             QR-Code (PNG-Data-URI via ZXing) und zeitfenster-tolerante Code-Pruefung
+             (RFC 6238). Version gepinnt. Nur aktiv, wenn plaintext.security.totp.enabled=true. -->
+        <dependency>
+            <groupId>dev.samstevens.totp</groupId>
+            <artifactId>totp</artifactId>
+            <version>1.7.1</version>
+            <exclusions>
+                <!-- Optionaler NTP-TimeProvider – nicht genutzt (wir verwenden SystemTimeProvider). -->
+                <exclusion>
+                    <groupId>commons-net</groupId>
+                    <artifactId>commons-net</artifactId>
+                </exclusion>
+            </exclusions>
+        </dependency>
+
+        <!-- === OpenAPI / Swagger === -->
+        <dependency>
+            <groupId>org.springdoc</groupId>
+            <artifactId>springdoc-openapi-starter-webmvc-ui</artifactId>
+        </dependency>
+
+        <!-- === Test === -->
+        <!-- Eingebettetes PostgreSQL statt Testcontainers (Karte 451, Entscheidung Daniels
+             02.08.2026): Testcontainers braucht den Docker-Daemon des Runners, und genau dieser
+             Zugang (/var/run/docker.sock als root gemountet) ist die Luecke, die geschlossen
+             werden soll. Der eingebettete Server laeuft als normaler Prozess im Testlauf.
+             Binaries stehen auf PostgreSQL 17 (neuester zonky-Stand), die CI-DB lief auf 18 —
+             der Unterschied ist bewusst in Kauf genommen. -->
+        <dependency>
+            <groupId>io.zonky.test</groupId>
+            <artifactId>embedded-postgres</artifactId>
+            <version>2.2.2</version>
+            <scope>test</scope>
+        </dependency>
+
+        <!-- Playwright (Browser-basierte Integration Tests) -->
+        <dependency>
+            <groupId>com.microsoft.playwright</groupId>
+            <artifactId>playwright</artifactId>
+            <version>1.60.0</version>
+            <scope>test</scope>
+        </dependency>
+
+        <!-- Geteilte Architektur-/Lint-Tests (ArchUnit + Mobile-Linter + ViewScoped-Scan).
+             Die Testklassen liegen in src/main/java von plaintext-root-archtests und werden via
+             Surefire <dependenciesToScan> (siehe <build>) gegen die Klassen/Ressourcen DIESES
+             Moduls ausgefuehrt — Referenz-Implementierung des geteilten Musters. archunit-junit5
+             kommt transitiv (compile) ueber dieses Modul auf den Test-Classpath. -->
+        <dependency>
+            <groupId>ch.plaintext</groupId>
+            <artifactId>plaintext-root-archtests</artifactId>
+            <version>${project.version}</version>
+            <scope>test</scope>
+        </dependency>
+
+    </dependencies>
+
+    <build>
+        <resources>
+            <resource>
+                <directory>src/main/resources</directory>
+                <filtering>true</filtering>
+                <excludes>
+                    <exclude>**/*.woff</exclude>
+                    <exclude>**/*.woff2</exclude>
+                    <exclude>**/*.ttf</exclude>
+                    <exclude>**/*.eot</exclude>
+                    <exclude>**/*.svg</exclude>
+                    <exclude>**/*.png</exclude>
+                    <exclude>**/*.jpg</exclude>
+                    <exclude>**/*.jpeg</exclude>
+                    <exclude>**/*.gif</exclude>
+                    <exclude>**/*.ico</exclude>
+                </excludes>
+            </resource>
+            <resource>
+                <directory>src/main/resources</directory>
+                <filtering>false</filtering>
+                <includes>
+                    <include>**/*.woff</include>
+                    <include>**/*.woff2</include>
+                    <include>**/*.ttf</include>
+                    <include>**/*.eot</include>
+                    <include>**/*.svg</include>
+                    <include>**/*.png</include>
+                    <include>**/*.jpg</include>
+                    <include>**/*.jpeg</include>
+                    <include>**/*.gif</include>
+                    <include>**/*.ico</include>
+                </includes>
+            </resource>
+        </resources>
+
+        <plugins>
+            <!-- Unpack template resources so JSF/Facelets can resolve them -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-dependency-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <id>unpack-template</id>
+                        <phase>prepare-package</phase>
+                        <goals>
+                            <goal>unpack-dependencies</goal>
+                        </goals>
+                        <configuration>
+                            <includeGroupIds>ch.plaintext</includeGroupIds>
+                            <includeArtifactIds>plaintext-root-template</includeArtifactIds>
+                            <includes>META-INF/resources/**</includes>
+                            <outputDirectory>${project.build.outputDirectory}</outputDirectory>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+            <!-- JaCoCo (Zustandsbericht 29.08.2026, Massnahme 13): Ausgeschlossen ist nur, was keine
+                 pruefbare Logik traegt — nicht, was ungetestet ist. Jede Gruppe mit Grund; eine
+                 Klasse mit Verzweigung (PlaintextSecurityConfig, RateLimitFilterConfig,
+                 JpaAuditingConfig, FaceletsKommentarConfig) bleibt drin. -->
+            <plugin>
+                <groupId>org.jacoco</groupId>
+                <artifactId>jacoco-maven-plugin</artifactId>
+                <configuration>
+                    <excludes>
+                        <!-- Spring-Boot-Einstieg: main() + Annotationen, kein eigener Code. -->
+                        <exclude>ch/RootBootApplication.class</exclude>
+                        <!-- Menue-Deklarationen: leere Klassen, die nur @MenuAnnotation tragen; die
+                             Annotationen selbst prueft MenuClassesTest per Reflection. -->
+                        <exclude>ch/plaintext/boot/menu/*Menu.class</exclude>
+                        <exclude>ch/plaintext/boot/performance/PerformanceMenu.class</exclude>
+                        <exclude>ch/plaintext/boot/deeplink/web/DeepLinkMenu.class</exclude>
+                        <exclude>ch/plaintext/boot/plugins/security/web/MandateMenu.class</exclude>
+                        <!-- Reine Bean-Verdrahtung: @Bean-Methoden ohne Verzweigung, nur new/Registrierung. -->
+                        <exclude>ch/plaintext/boot/plugins/config/JacksonConfig.class</exclude>
+                        <exclude>ch/plaintext/boot/plugins/security/config/SecurityJpaConfig.class</exclude>
+                        <exclude>ch/plaintext/boot/plugins/security/SecurityContextRepositoryConfig.class</exclude>
+                        <exclude>ch/plaintext/boot/plugins/maintenance/MaintenanceModeConfig.class</exclude>
+                        <exclude>ch/plaintext/boot/performance/SlowRequestConfig.class</exclude>
+                    </excludes>
+                </configuration>
+            </plugin>
+            <!-- Geteilte Architektur-/Lint-Tests aus plaintext-root-archtests mitlaufen lassen.
+                 dependenciesToScan laesst Surefire das (Test-scope) Jar nach Testklassen durchsuchen;
+                 die JUnit-Platform fuehrt sie ueber Jupiter- (@Test) und ArchUnit-Engine (@ArchTest)
+                 gegen die Klassen/Ressourcen dieses Moduls aus. -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <configuration>
+                    <dependenciesToScan>
+                        <dependency>ch.plaintext:plaintext-root-archtests</dependency>
+                    </dependenciesToScan>
+                    <!-- SchlankerKontextTest gehoert in die zweite Ausfuehrung (siehe unten); mit
+                         den Modul-Jars auf dem Classpath beweist er nichts und schlaegt bewusst fehl. -->
+                    <excludes>
+                        <exclude>**/SchlankerKontextTest.java</exclude>
+                        <exclude>**/*$*</exclude>
+                    </excludes>
+                    <systemPropertyVariables>
+                        <!-- PlaintextInlineJsVertragTest scharf schalten: kein Inline-JavaScript in den
+                             XHTML dieses Reactors (Welle 4, Vorbedingung fuer eine CSP ohne
+                             script-src 'unsafe-inline'). root ist bereinigt und bleibt es.
+                             Ohne diese Zeile laeuft der Test nur meldend — so kommt er bei den
+                             Consumern (app, guild, iot, schuetu) an, ohne deren Build umzuwerfen,
+                             solange dort noch Altbestand liegt. Wer bereinigt ist, setzt dieselben
+                             Zeilen in seinem webapp-pom. -->
+                        <plaintext.arch.inline-js>enforce</plaintext.arch.inline-js>
+                    </systemPropertyVariables>
+                </configuration>
+                <executions>
+                    <!--
+                      Zweiter Testlauf OHNE die abwaehlbaren Admin-Module (Zustandsbericht
+                      29.08.2026, §3 "Aggregator ohne Opt-out"). classpathDependencyExcludes nimmt
+                      den vier Jars den Platz auf dem Test-Classpath weg — damit ist ihre
+                      Abwesenheit echt: keine Klassen, keine AutoConfiguration.imports, keine
+                      Flyway-Migrationen, kein Component-Scan-Treffer. Genau das erlebt eine App,
+                      die sie per <exclusions> aus plaintext-root-webapp herauswirft.
+
+                      Der Lauf ist zugleich die Sperre: Wer im Kern eine Klasse aus einem dieser
+                      Pakete importiert oder eine ihrer Beans hart injiziert, laesst hier den
+                      Kontext-Start scheitern statt erst den PROD-Start einer schlanken App.
+
+                      Die Liste steht doppelt (hier und in SchlankerKontextTest) — Maven kann
+                      Plugin-Konfiguration nicht aus Java lesen. Deshalb wird sie als
+                      Systemproperty hereingereicht und dort gegengeprueft.
+                      Aendern? Dann auch docs/OPTIONAL_MODULES.md nachziehen.
+                    -->
+                    <execution>
+                        <id>kontext-ohne-abwaehlbare-module</id>
+                        <phase>test</phase>
+                        <goals>
+                            <goal>test</goal>
+                        </goals>
+                        <configuration>
+                            <!-- <test> statt <includes>: die Auswahl steht damit fest und laesst sich
+                                 NICHT per -Dtest=... von der Kommandozeile umbiegen. Sonst zoege ein
+                                 `mvn test -Dtest=Irgendwas` diesen Lauf mit — und Irgendwas fiele ohne
+                                 die vier Jars um, ohne dass daran etwas kaputt waere. -->
+                            <test>SchlankerKontextTest</test>
+                            <excludes>
+                                <exclude>**/*$*</exclude>
+                            </excludes>
+                            <classpathDependencyExcludes>
+                                <classpathDependencyExclude>ch.plaintext:plaintext-admin-webhooks</classpathDependencyExclude>
+                                <classpathDependencyExclude>ch.plaintext:plaintext-admin-notifications</classpathDependencyExclude>
+                                <classpathDependencyExclude>ch.plaintext:plaintext-admin-secrets</classpathDependencyExclude>
+                                <classpathDependencyExclude>ch.plaintext:plaintext-admin-modules</classpathDependencyExclude>
+                            </classpathDependencyExcludes>
+                            <systemPropertyVariables>
+                                <plaintext.abgewaehlte.module>ch.plaintext:plaintext-admin-webhooks,ch.plaintext:plaintext-admin-notifications,ch.plaintext:plaintext-admin-secrets,ch.plaintext:plaintext-admin-modules</plaintext.abgewaehlte.module>
+                            </systemPropertyVariables>
+                            <reportsDirectory>${project.build.directory}/surefire-reports-schlank</reportsDirectory>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
+                <groupId>org.springframework.boot</groupId>
+                <artifactId>spring-boot-maven-plugin</artifactId>
+                <configuration>
+                    <mainClass>ch.RootBootApplication</mainClass>
+                    <classifier>exec</classifier>
+                    <!-- Fat-Jar (exec) NICHT ins Maven-Repo deployen (126 MB/Release): es ist ein
+                         Deploy-Artefakt (Jar-Staging/Docker), kein Consumable. Das plain Jar bleibt
+                         publiziert — die Consumer haengen als Maven-Dependency daran. -->
+                    <attach>false</attach>
+                </configuration>
+            </plugin>
+            <!-- Integration Tests (Playwright) - ausführen mit: mvn verify -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-failsafe-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <goals>
+                            <goal>integration-test</goal>
+                            <goal>verify</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+        </plugins>
+    </build>
+
+</project>
