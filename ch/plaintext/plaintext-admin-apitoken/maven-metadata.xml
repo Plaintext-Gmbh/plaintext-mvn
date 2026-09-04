@@ -3,7 +3,7 @@
   <groupId>ch.plaintext</groupId>
   <artifactId>plaintext-admin-apitoken</artifactId>
   <versioning>
-    <release>1.665.0</release>
+    <release>1.666.0</release>
     <versions>
       <version>1.495.0</version>
       <version>1.497.0</version>
@@ -104,7 +104,8 @@
       <version>1.663.0</version>
       <version>1.664.0</version>
       <version>1.665.0</version>
+      <version>1.666.0</version>
     </versions>
-    <lastUpdated>20260903115109</lastUpdated>
+    <lastUpdated>20260904203459</lastUpdated>
   </versioning>
 </metadata>
