@@ -1,0 +1,240 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>ch.plaintext</groupId>
+        <artifactId>plaintext-root-parent</artifactId>
+        <version>1.679.0</version>
+    </parent>
+
+    <artifactId>plaintext-admin-cron</artifactId>
+    <name>plaintext-admin-cron</name>
+    <description>Plaintext Cron</description>
+
+    <dependencies>
+
+        <dependency>
+            <groupId>ch.plaintext</groupId>
+            <artifactId>plaintext-root-common</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>ch.plaintext</groupId>
+            <artifactId>plaintext-root-interfaces</artifactId>
+        </dependency>
+
+        <!-- Spring Boot Starters. dependency:analyze meldet alle vier als "unused declared":
+             das sind Aggregat-POMs ohne eigene Klassen, das Werkzeug kann ihre Nutzung
+             strukturell nicht sehen (Karte 1027, 06.09.2026). -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter</artifactId>
+        </dependency>
+
+        <!-- data-jpa: CronConfigRepository/CronConfigEntity nutzen JpaRepository/@Entity. -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-data-jpa</artifactId>
+        </dependency>
+
+        <!-- mail: kein Java-Treffer im Modul (kein MailSender/jakarta.mail-Import, Stand
+             06.09.2026); nicht Teil der zwoelf aus Karte 391 benannten Abhaengigkeiten,
+             deshalb hier bewusst NICHT entfernt: Entfernung wuerde eine eigene
+             Konsumenten-Pruefung brauchen, die diese Karte nicht abdeckt. -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-mail</artifactId>
+        </dependency>
+
+        <!-- security: SuperCron.java nutzt org.springframework.security direkt. -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-security</artifactId>
+        </dependency>
+
+        <!-- web: kein @Controller/@RequestMapping im Modul (JSF-Backing-Beans statt Spring
+             MVC, Stand 06.09.2026); wie starter-mail bewusst nicht entfernt, gleiche
+             Begruendung. -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-web</artifactId>
+        </dependency>
+
+        <!-- Lombok -->
+        <dependency>
+            <groupId>org.projectlombok</groupId>
+            <artifactId>lombok</artifactId>
+            <scope>provided</scope>
+        </dependency>
+
+        <!-- Annotation Processing -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-configuration-processor</artifactId>
+            <optional>true</optional>
+        </dependency>
+
+        <!-- Apache Commons -->
+        <dependency>
+            <groupId>org.apache.commons</groupId>
+            <artifactId>commons-lang3</artifactId>
+        </dependency>
+
+        <!-- commons-io: kein Java-Treffer im Modul (Stand 06.09.2026); nicht Teil der
+             zwoelf aus Karte 391 benannten Abhaengigkeiten, deshalb bewusst nicht entfernt
+             (gleiche Begruendung wie bei starter-mail/starter-web oben). -->
+        <dependency>
+            <groupId>commons-io</groupId>
+            <artifactId>commons-io</artifactId>
+        </dependency>
+
+        <!-- JSF/PrimeFaces -->
+        <dependency>
+            <groupId>org.glassfish</groupId>
+            <artifactId>jakarta.faces</artifactId>
+        </dependency>
+
+        <!-- primefaces: nicht aus Java-Code referenziert, sondern aus cron.xhtml
+             (xmlns:p="http://primefaces.org/ui"): JSF-Facelets-Nutzung ist fuer
+             dependency:analyze unsichtbar. -->
+        <dependency>
+            <groupId>org.primefaces</groupId>
+            <artifactId>primefaces</artifactId>
+            <classifier>jakarta</classifier>
+        </dependency>
+
+        <!-- Servlet API: kein Java-Treffer im Modul (Stand 06.09.2026); nicht Teil der
+             zwoelf aus Karte 391 benannten Abhaengigkeiten, bewusst nicht entfernt. -->
+        <dependency>
+            <groupId>jakarta.servlet</groupId>
+            <artifactId>jakarta.servlet-api</artifactId>
+        </dependency>
+
+        <!-- Validation API: kein Java-Treffer im Modul (Stand 06.09.2026); nicht Teil der
+             zwoelf aus Karte 391 benannten Abhaengigkeiten, bewusst nicht entfernt. -->
+        <dependency>
+            <groupId>jakarta.validation</groupId>
+            <artifactId>jakarta.validation-api</artifactId>
+        </dependency>
+
+        <!-- Jakarta Inject API for @Named -->
+        <dependency>
+            <groupId>jakarta.inject</groupId>
+            <artifactId>jakarta.inject-api</artifactId>
+        </dependency>
+
+        <!-- Cron4j for scheduled tasks -->
+        <dependency>
+            <groupId>it.sauronsoftware.cron4j</groupId>
+            <artifactId>cron4j</artifactId>
+        </dependency>
+
+        <!-- Prettytime -->
+        <dependency>
+            <groupId>org.ocpsoft.prettytime</groupId>
+            <artifactId>prettytime</artifactId>
+        </dependency>
+
+        <!-- AssertJ (for utilities, optional) -->
+        <dependency>
+            <groupId>org.assertj</groupId>
+            <artifactId>assertj-core</artifactId>
+            <optional>true</optional>
+        </dependency>
+
+
+        <!-- Spring Remoting (optional) -->
+        <dependency>
+            <groupId>org.springframework</groupId>
+            <artifactId>spring-web</artifactId>
+            <optional>true</optional>
+        </dependency>
+
+
+        <!-- Rewrite Servlet (optional) -->
+        <!-- TODO: Find Jakarta EE 10 compatible version of rewrite-servlet or migrate to alternative URL rewriting solution -->
+        <!--
+        <dependency>
+            <groupId>org.ocpsoft.rewrite</groupId>
+            <artifactId>rewrite-servlet</artifactId>
+            <version>3.5.1.Final</version>
+            <optional>true</optional>
+        </dependency>
+        -->
+
+        <!-- J2Html (optional for test reports) -->
+        <dependency>
+            <groupId>com.j2html</groupId>
+            <artifactId>j2html</artifactId>
+            <optional>true</optional>
+        </dependency>
+
+        <!--
+          htmlunit3-driver wurde am 02.08.2026 ersatzlos entfernt (Karte 389): kein Java-Quelltext
+          im Reactor referenziert HtmlUnit oder WebDriver, das Artefakt brachte aber ein
+          geschattetes Jetty 9.4.58 mit (CVE-2026-2332, CVSS 9.1). Jetty 9.4 ist am Ende seines
+          Lebenszyklus, ein Version-Bump war deshalb kein Weg.
+        -->
+
+        <!-- Flyway for database migrations (optional) -->
+        <dependency>
+            <groupId>org.flywaydb</groupId>
+            <artifactId>flyway-core</artifactId>
+            <optional>true</optional>
+        </dependency>
+
+        <!-- Selenium for testing (optional) -->
+        <dependency>
+            <groupId>org.seleniumhq.selenium</groupId>
+            <artifactId>selenium-java</artifactId>
+            <optional>true</optional>
+        </dependency>
+
+        <!-- BrowsCap for user agent parsing (optional) -->
+        <dependency>
+            <groupId>com.blueconic</groupId>
+            <artifactId>browscap-java</artifactId>
+            <optional>true</optional>
+        </dependency>
+
+        <!-- plaintext-root-menu: wird ueber @MenuAnnotation (ch.plaintext.boot.menu) in
+             CronMenu.java genutzt; dependency:analyze sieht es wegen der Annotation nicht
+             als Treffer. -->
+        <dependency>
+            <groupId>ch.plaintext</groupId>
+            <artifactId>plaintext-root-menu</artifactId>
+            <scope>compile</scope>
+        </dependency>
+
+        <!-- Testing -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-test</artifactId>
+            <scope>test</scope>
+        </dependency>
+    </dependencies>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <configuration>
+                    <source>21</source>
+                    <target>21</target>
+                    <annotationProcessorPaths>
+                        <path>
+                            <groupId>org.projectlombok</groupId>
+                            <artifactId>lombok</artifactId>
+                            <version>${lombok.version}</version>
+                        </path>
+                    </annotationProcessorPaths>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
+
+</project>
