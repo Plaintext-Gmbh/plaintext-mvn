@@ -3,7 +3,7 @@
   <groupId>ch.plaintext</groupId>
   <artifactId>plaintext-root-parent</artifactId>
   <versioning>
-    <release>1.686.0</release>
+    <release>1.687.0</release>
     <versions>
       <version>1.495.0</version>
       <version>1.497.0</version>
@@ -124,7 +124,8 @@
       <version>1.684.0</version>
       <version>1.685.0</version>
       <version>1.686.0</version>
+      <version>1.687.0</version>
     </versions>
-    <lastUpdated>20260914060627</lastUpdated>
+    <lastUpdated>20260914085546</lastUpdated>
   </versioning>
 </metadata>
