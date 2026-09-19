@@ -3,7 +3,7 @@
   <groupId>ch.plaintext</groupId>
   <artifactId>plaintext-root-archtests</artifactId>
   <versioning>
-    <release>1.697.0</release>
+    <release>1.699.0</release>
     <versions>
       <version>1.495.0</version>
       <version>1.497.0</version>
@@ -135,7 +135,8 @@
       <version>1.695.0</version>
       <version>1.696.0</version>
       <version>1.697.0</version>
+      <version>1.699.0</version>
     </versions>
-    <lastUpdated>20260919140232</lastUpdated>
+    <lastUpdated>20260919152233</lastUpdated>
   </versioning>
 </metadata>
