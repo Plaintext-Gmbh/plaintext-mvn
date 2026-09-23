@@ -1,0 +1,132 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>ch.plaintext</groupId>
+        <artifactId>plaintext-root-parent</artifactId>
+        <version>1.720.0</version>
+    </parent>
+
+    <artifactId>plaintext-root-archtests</artifactId>
+    <name>plaintext-root-archtests</name>
+    <description>
+        Wiederverwendbare Architektur-/Lint-Tests (ArchUnit + JUnit) fuer plaintext-root und alle
+        abhaengigen Projekte (app, iot, fwtool, schuetu). Die Tests liegen bewusst in src/main/java,
+        damit sie ins publizierte Jar wandern; Consumer lassen sie via Surefire dependenciesToScan
+        gegen ihre eigenen Klassen/Ressourcen laufen — statt sie zu kopieren.
+    </description>
+
+    <properties>
+        <!-- Kein Coverage-Gate: src/main/java dieses Moduls IST Testcode (die geteilten Regeln),
+             ausgefuehrt in plaintext-root-webapp und in den Consumern. Seine Abdeckung zu messen
+             hiesse, Tests mit Tests zu testen; der Wert lag bei 1,7 % und sagte nichts. -->
+        <jacoco.skip>true</jacoco.skip>
+    </properties>
+
+    <dependencies>
+        <!-- ArchUnit (JUnit-5-Engine + Core). Compile-scope, weil die Tests in src/main liegen.
+             Kommt so bei Consumern transitiv auf den Test-Classpath (api + engine). -->
+        <dependency>
+            <groupId>com.tngtech.archunit</groupId>
+            <artifactId>archunit-junit5</artifactId>
+        </dependency>
+
+        <!-- JUnit Jupiter API fuer @Test/@TempDir/Assertions (Version aus dem Spring-Boot-Parent-BOM). -->
+        <dependency>
+            <groupId>org.junit.jupiter</groupId>
+            <artifactId>junit-jupiter-api</artifactId>
+        </dependency>
+
+        <!-- Engine NUR fuer die modul-eigenen Tests unter src/test/java. Die publizierten Arch-Tests
+             in src/main/java laufen im Consumer mit dessen Engine; archunit-junit5 bringt nur die
+             ArchUnit-Engine mit, nicht die Jupiter-Engine. -->
+        <dependency>
+            <groupId>org.junit.jupiter</groupId>
+            <artifactId>junit-jupiter-engine</artifactId>
+            <scope>test</scope>
+        </dependency>
+
+        <!-- Karte 1297: ch.plaintext.PlaintextCron (root-interfaces) wird von
+             PlaintextArchitectureTest benutzt, kam aber nur transitiv ueber plaintext-root-common.
+             Jetzt deklariert — sonst bricht dieses Modul, wenn root-common seine
+             interfaces-Abhaengigkeit verliert, ohne dass jemand archtests angefasst hat. -->
+        <dependency>
+            <groupId>ch.plaintext</groupId>
+            <artifactId>plaintext-root-interfaces</artifactId>
+        </dependency>
+
+        <!-- Karte 1298: PageGuardZuordnungTest (aus app/guild/schuetu gehoben) benutzt die echte
+             Guard-Logik (PageAccessGuardService, PageGuardProperties) und die echte MenuRegistryImpl,
+             statt sie nachzubilden. Beide Module liegen in jedem Consumer ohnehin am Klassenpfad
+             (ueber plaintext-root-webapp); hier stehen sie, damit die Klasse kompiliert. -->
+        <dependency>
+            <groupId>ch.plaintext</groupId>
+            <artifactId>plaintext-root-pageguard</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>ch.plaintext</groupId>
+            <artifactId>plaintext-root-menu</artifactId>
+        </dependency>
+        <!-- Binder/YamlPropertySourceLoader fuer PageGuardZuordnungTest (kommt auch transitiv ueber
+             pageguard -> spring-boot-starter; deklariert, weil direkt benutzt). -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot</artifactId>
+        </dependency>
+
+        <!-- plaintext-root-common bringt transitiv:
+             - ch.plaintext.boot.utils.MobileFormLinter (Scan-Logik des Mobile-Linters)
+             - ch.plaintext:plaintext-root-interfaces -> ch.plaintext.PlaintextCron
+             - spring-context (org.springframework.context.annotation.Scope,
+               org.springframework.scheduling.annotation.Scheduled) -->
+        <dependency>
+            <groupId>ch.plaintext</groupId>
+            <artifactId>plaintext-root-common</artifactId>
+        </dependency>
+    </dependencies>
+
+    <build>
+        <plugins>
+            <!-- Das Wurzel-POM als Ressource ins Jar legen: PlaintextZentralerPinTest muss auch in
+                 app/guild/schuetu/iot wissen, WELCHE Abhaengigkeiten root zentral verwaltet. Dort
+                 liegt plaintext-root/pom.xml nicht auf der Platte; ueber den Classpath ist es da.
+
+                 Der mitgelieferte Stand ist automatisch der richtige: das Jar traegt die
+                 root-Version, die der Consumer als Parent gepinnt hat (archtests-Version =
+                 ${plaintext-root.version} = Parent-Version). Verglichen wird also gegen genau das
+                 POM, von dem der Consumer erbt, nicht gegen ein beliebiges root-master.
+
+                 Ziel-Unterverzeichnis, damit es nicht mit META-INF/maven/.../pom.xml des Jars
+                 selbst verwechselt wird. -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-resources-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <id>zentralpin-wurzel-pom</id>
+                        <phase>generate-resources</phase>
+                        <goals>
+                            <goal>copy-resources</goal>
+                        </goals>
+                        <configuration>
+                            <outputDirectory>${project.build.outputDirectory}/plaintext-zentralpin</outputDirectory>
+                            <resources>
+                                <resource>
+                                    <directory>${project.basedir}/..</directory>
+                                    <includes>
+                                        <include>pom.xml</include>
+                                    </includes>
+                                    <filtering>false</filtering>
+                                </resource>
+                            </resources>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+        </plugins>
+    </build>
+
+</project>
