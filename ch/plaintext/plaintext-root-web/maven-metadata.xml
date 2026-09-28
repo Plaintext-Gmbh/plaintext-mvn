@@ -3,7 +3,7 @@
   <groupId>ch.plaintext</groupId>
   <artifactId>plaintext-root-web</artifactId>
   <versioning>
-    <release>1.725.0</release>
+    <release>1.726.0</release>
     <versions>
       <version>1.497.0</version>
       <version>1.499.0</version>
@@ -158,7 +158,8 @@
       <version>1.723.0</version>
       <version>1.724.0</version>
       <version>1.725.0</version>
+      <version>1.726.0</version>
     </versions>
-    <lastUpdated>20260923144347</lastUpdated>
+    <lastUpdated>20260928095427</lastUpdated>
   </versioning>
 </metadata>
