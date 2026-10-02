@@ -3,11 +3,12 @@
   <groupId>ch.plaintext</groupId>
   <artifactId>plaintext-admin-sidecars</artifactId>
   <versioning>
-    <release>1.743.0</release>
+    <release>1.744.0</release>
     <versions>
       <version>1.742.0</version>
       <version>1.743.0</version>
+      <version>1.744.0</version>
     </versions>
-    <lastUpdated>20261002114617</lastUpdated>
+    <lastUpdated>20261002133802</lastUpdated>
   </versioning>
 </metadata>
