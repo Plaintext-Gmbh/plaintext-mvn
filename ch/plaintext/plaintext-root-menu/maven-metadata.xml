@@ -3,7 +3,7 @@
   <groupId>ch.plaintext</groupId>
   <artifactId>plaintext-root-menu</artifactId>
   <versioning>
-    <release>1.760.0</release>
+    <release>1.761.0</release>
     <versions>
       <version>1.495.0</version>
       <version>1.497.0</version>
@@ -194,7 +194,8 @@
       <version>1.758.0</version>
       <version>1.759.0</version>
       <version>1.760.0</version>
+      <version>1.761.0</version>
     </versions>
-    <lastUpdated>20261010140609</lastUpdated>
+    <lastUpdated>20261010163933</lastUpdated>
   </versioning>
 </metadata>
