@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>ch.plaintext</groupId>
+        <artifactId>plaintext-root-parent</artifactId>
+        <version>1.760.0</version>
+    </parent>
+
+    <artifactId>plaintext-root-katalog</artifactId>
+    <name>plaintext-root-katalog</name>
+    <description>Karte 1405: Annotation-Prozessor, der die Schnittstellen der *-interfaces-Module samt Javadoc als Katalog ins Jar schreibt</description>
+
+    <dependencies>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-test</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>tools.jackson.core</groupId>
+            <artifactId>jackson-databind</artifactId>
+            <scope>test</scope>
+        </dependency>
+    </dependencies>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <configuration>
+                    <!-- Der Prozessor darf sich beim eigenen Kompilieren nicht selbst finden. Karte 1422: der
+                         Parent traegt ihn jetzt fuer alle Module ein — hier die Liste leeren, sonst wuerde Maven
+                         das noch nicht gebaute eigene Jar aufloesen. -->
+                    <proc>none</proc>
+                    <annotationProcessorPaths combine.self="override"/>
+                    <compilerArgs combine.self="override"/>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
+</project>
