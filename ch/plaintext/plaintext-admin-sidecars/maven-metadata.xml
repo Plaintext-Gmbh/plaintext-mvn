@@ -3,7 +3,7 @@
   <groupId>ch.plaintext</groupId>
   <artifactId>plaintext-admin-sidecars</artifactId>
   <versioning>
-    <release>1.770.0</release>
+    <release>1.771.0</release>
     <versions>
       <version>1.742.0</version>
       <version>1.743.0</version>
@@ -34,7 +34,8 @@
       <version>1.768.0</version>
       <version>1.769.0</version>
       <version>1.770.0</version>
+      <version>1.771.0</version>
     </versions>
-    <lastUpdated>20261013093514</lastUpdated>
+    <lastUpdated>20261013101503</lastUpdated>
   </versioning>
 </metadata>
