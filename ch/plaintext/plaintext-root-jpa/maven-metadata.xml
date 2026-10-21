@@ -3,7 +3,7 @@
   <groupId>ch.plaintext</groupId>
   <artifactId>plaintext-root-jpa</artifactId>
   <versioning>
-    <release>1.784.0</release>
+    <release>1.785.0</release>
     <versions>
       <version>1.495.0</version>
       <version>1.497.0</version>
@@ -218,7 +218,8 @@
       <version>1.782.0</version>
       <version>1.783.0</version>
       <version>1.784.0</version>
+      <version>1.785.0</version>
     </versions>
-    <lastUpdated>20261021194407</lastUpdated>
+    <lastUpdated>20261021212650</lastUpdated>
   </versioning>
 </metadata>

@@ -3,7 +3,7 @@
   <groupId>ch.plaintext</groupId>
   <artifactId>plaintext-root-watch</artifactId>
   <versioning>
-    <release>1.784.0</release>
+    <release>1.785.0</release>
     <versions>
       <version>1.689.0</version>
       <version>1.690.0</version>
@@ -97,7 +97,8 @@
       <version>1.782.0</version>
       <version>1.783.0</version>
       <version>1.784.0</version>
+      <version>1.785.0</version>
     </versions>
-    <lastUpdated>20261021194614</lastUpdated>
+    <lastUpdated>20261021212816</lastUpdated>
   </versioning>
 </metadata>
