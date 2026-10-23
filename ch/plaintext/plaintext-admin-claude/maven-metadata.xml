@@ -3,7 +3,7 @@
   <groupId>ch.plaintext</groupId>
   <artifactId>plaintext-admin-claude</artifactId>
   <versioning>
-    <release>1.793.0</release>
+    <release>1.794.0</release>
     <versions>
       <version>1.784.0</version>
       <version>1.785.0</version>
@@ -11,7 +11,8 @@
       <version>1.791.0</version>
       <version>1.792.0</version>
       <version>1.793.0</version>
+      <version>1.794.0</version>
     </versions>
-    <lastUpdated>20261023090229</lastUpdated>
+    <lastUpdated>20261023102440</lastUpdated>
   </versioning>
 </metadata>
