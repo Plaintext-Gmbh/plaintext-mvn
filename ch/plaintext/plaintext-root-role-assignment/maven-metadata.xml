@@ -3,7 +3,7 @@
   <groupId>ch.plaintext</groupId>
   <artifactId>plaintext-root-role-assignment</artifactId>
   <versioning>
-    <release>1.804.0</release>
+    <release>1.805.0</release>
     <versions>
       <version>1.495.0</version>
       <version>1.497.0</version>
@@ -234,7 +234,8 @@
       <version>1.802.0</version>
       <version>1.803.0</version>
       <version>1.804.0</version>
+      <version>1.805.0</version>
     </versions>
-    <lastUpdated>20261025232134</lastUpdated>
+    <lastUpdated>20261026020510</lastUpdated>
   </versioning>
 </metadata>
