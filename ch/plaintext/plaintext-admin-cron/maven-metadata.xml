@@ -3,7 +3,7 @@
   <groupId>ch.plaintext</groupId>
   <artifactId>plaintext-admin-cron</artifactId>
   <versioning>
-    <release>1.812.0</release>
+    <release>1.813.0</release>
     <versions>
       <version>1.495.0</version>
       <version>1.497.0</version>
@@ -242,7 +242,8 @@
       <version>1.810.0</version>
       <version>1.811.0</version>
       <version>1.812.0</version>
+      <version>1.813.0</version>
     </versions>
-    <lastUpdated>20261027163815</lastUpdated>
+    <lastUpdated>20261027221618</lastUpdated>
   </versioning>
 </metadata>

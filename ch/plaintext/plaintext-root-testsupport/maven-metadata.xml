@@ -3,7 +3,7 @@
   <groupId>ch.plaintext</groupId>
   <artifactId>plaintext-root-testsupport</artifactId>
   <versioning>
-    <release>1.812.0</release>
+    <release>1.813.0</release>
     <versions>
       <version>1.720.0</version>
       <version>1.721.0</version>
@@ -94,7 +94,8 @@
       <version>1.810.0</version>
       <version>1.811.0</version>
       <version>1.812.0</version>
+      <version>1.813.0</version>
     </versions>
-    <lastUpdated>20261027164116</lastUpdated>
+    <lastUpdated>20261027221919</lastUpdated>
   </versioning>
 </metadata>
