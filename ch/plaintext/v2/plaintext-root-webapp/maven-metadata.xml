@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<metadata>
+  <groupId>ch.plaintext.v2</groupId>
+  <artifactId>plaintext-root-webapp</artifactId>
+  <versioning>
+    <release>2.820.3</release>
+    <versions>
+      <version>2.820.3</version>
+    </versions>
+    <lastUpdated>20261105065600</lastUpdated>
+  </versioning>
+</metadata>
