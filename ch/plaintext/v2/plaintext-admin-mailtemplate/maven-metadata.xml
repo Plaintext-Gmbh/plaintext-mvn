@@ -3,7 +3,7 @@
   <groupId>ch.plaintext.v2</groupId>
   <artifactId>plaintext-admin-mailtemplate</artifactId>
   <versioning>
-    <release>3.7.0</release>
+    <release>3.8.0</release>
     <versions>
       <version>2.820.3</version>
       <version>2.821.1</version>
@@ -15,7 +15,8 @@
       <version>3.5.0</version>
       <version>3.6.0</version>
       <version>3.7.0</version>
+      <version>3.8.0</version>
     </versions>
-    <lastUpdated>20261111031922</lastUpdated>
+    <lastUpdated>20261111042801</lastUpdated>
   </versioning>
 </metadata>
