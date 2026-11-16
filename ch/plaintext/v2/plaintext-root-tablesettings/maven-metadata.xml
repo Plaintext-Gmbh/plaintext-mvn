@@ -3,7 +3,7 @@
   <groupId>ch.plaintext.v2</groupId>
   <artifactId>plaintext-root-tablesettings</artifactId>
   <versioning>
-    <release>3.35.0</release>
+    <release>3.36.0</release>
     <versions>
       <version>3.14.0</version>
       <version>3.15.0</version>
@@ -27,7 +27,8 @@
       <version>3.33.0</version>
       <version>3.34.0</version>
       <version>3.35.0</version>
+      <version>3.36.0</version>
     </versions>
-    <lastUpdated>20261115210351</lastUpdated>
+    <lastUpdated>20261116001246</lastUpdated>
   </versioning>
 </metadata>
